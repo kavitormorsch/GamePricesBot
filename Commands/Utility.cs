@@ -41,8 +41,8 @@ namespace MakingBot.Commands
         {
             DiscordEmbedBuilder message = new()
             {
-                Title = "The Tsuba",
-                Description = "yotsuba",
+                Title = "Yotsuba Koiwai",
+                Description = "Protagonist of the manga \"Yotsuba&!\"",
                 Color = DiscordColor.SpringGreen,
                 ImageUrl = "https://www.siliconera.com/wp-content/uploads/2024/12/new-yotsuba-manga-volume-16-finally-debuts-in-2025.png",
                 Timestamp = DateTime.Now,
@@ -55,7 +55,7 @@ namespace MakingBot.Commands
         public async Task CardGame(CommandContext ctx)
         {
             CardSystem userCard = new();
-            
+
             DiscordEmbedBuilder userCardEmbed = new()
             {
                 Title = $"{ctx.User.Username} drew {userCard.SelectedNumber} of {userCard.SelectedSuit}",
@@ -84,7 +84,7 @@ namespace MakingBot.Commands
                     Color = DiscordColor.Green,
                 };
             }
-            else if(((int)userCard.SelectedNumber == (int)botCard.SelectedNumber))
+            else if (((int)userCard.SelectedNumber == (int)botCard.SelectedNumber))
             {
                 resultMessage = new()
                 {
@@ -120,14 +120,14 @@ namespace MakingBot.Commands
         [Command("intertest2")]
         public async Task ReactingInterac(CommandContext ctx)
         {
-           var interactivity = Program.Client.GetInteractivity();
+            var interactivity = Program.Client.GetInteractivity();
 
             var messageToReact = await interactivity.WaitForReactionAsync(message => message.Message.Id == 1352682204010123365);
             if (messageToReact.Result.Message.Id == 1352682204010123365)
             {
                 await ctx.Channel.SendMessageAsync($"{ctx.User.Username} reacted to a message with {messageToReact.Result.Emoji}");
             }
-            
+
         }
 
         [Command("poll")]
@@ -177,7 +177,7 @@ namespace MakingBot.Commands
                     count1++;
                 if (emoji.Emoji == emojiOptions[1])
                     count2++;
-                if (emoji.Emoji== emojiOptions[2])
+                if (emoji.Emoji == emojiOptions[2])
                     count3++;
                 if (emoji.Emoji == emojiOptions[3])
                     count4++;
@@ -203,24 +203,24 @@ Total Votes: {totalvotes}";
         }
 
         [Command("price")]
-        public async Task findSales(CommandContext ctx, string game, string language)
+        public async Task findSales(CommandContext ctx, string lang, params string[] gameWords)
         {
             //await new BrowserFetcher().DownloadAsync(0);
+
+            string game = string.Join(' ', gameWords);
 
             var browser = await Puppeteer.LaunchAsync(new LaunchOptions()
             {
                 DefaultViewport = new ViewPortOptions() { Width = 1280 },
                 Headless = true
-
             });
-
-            
 
             var page = await browser.NewPageAsync();
             await page.SetUserAgentAsync("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36");
             await page.GoToAsync($"https://gg.deals/search/?title={game}", timeout: 0);
 
-            await ChangeLanguage(ctx, page);
+            await ChangeLanguage(ctx, page, lang);
+
 
             try
             {
@@ -230,11 +230,37 @@ Total Votes: {totalvotes}";
             {
                 Console.WriteLine(ex.Message);
             }
-            //await GetStorePrices(ctx, page);
+            await GetStorePrices(ctx, page);
+
+            await browser.CloseAsync();
         }
 
-        static async Task ChangeLanguage(CommandContext ctx, IPage page)
+        static async Task ChangeLanguage(CommandContext ctx, IPage page, string lang)
         {
+            var languageToSearch = lang.ToLower().Trim() switch
+            {
+                "au" => "Australia",
+                "be" => "Belgium",
+                "ca" => "Canada",
+                "dk" => "Denmark",
+                "eu" => "Europe",
+                "fi" => "Finland",
+                "fr" => "France",
+                "de" => "Germany",
+                "ie" => "Ireland",
+                "it" => "Italy",
+                "ne" => "Netherlands",
+                "no" => "Norway",
+                "pl" => "Poland",
+                "es" => "Spain",
+                "se" => "Sweden",
+                "ch" => "Switzerland",
+                "uk" => "United Kingdom",
+                "us" => "United States",
+                _ => ""
+            };
+
+
             var regionList = await page.QuerySelectorAsync("#settings-menu-region");
             var regionButton = await regionList.QuerySelectorAsync(".settings-menu-select-action");
 
@@ -248,12 +274,13 @@ Total Votes: {totalvotes}";
 
                 string languageText = await (await languageButton.GetPropertyAsync("textContent")).JsonValueAsync<string>();
 
-                if (languageText.Trim() == "United States")
+                if (languageText.Trim() == languageToSearch)
                 {
-                    await ctx.Channel.SendMessageAsync("Language changed to US.");
+                    await ctx.Channel.SendMessageAsync($"Language changed to {lang.ToUpper()}.");
                     await languageButton.ClickAsync();
                     //wait for language change before swapping pages, otherwise net::ERR_ABORT will occur
-                    await Task.Delay(1500);
+                    await page.WaitForNavigationAsync();
+                    break;
                 }
 
             }
@@ -294,30 +321,69 @@ Total Votes: {totalvotes}";
             };
 
             var interactivity = ctx.Client.GetInteractivity();
-            var pages = interactivity.GeneratePagesInEmbed(finalMessage.ToString(), DSharpPlus.Interactivity.Enums.SplitType.Line);        
+            var pages = interactivity.GeneratePagesInEmbed(finalMessage.ToString(), DSharpPlus.Interactivity.Enums.SplitType.Line);
 
             await ctx.Channel.SendPaginatedMessageAsync(ctx.Member, pages);
 
             int index = 0;
 
-           
+            try
+            {
+                var selectOptions = new List<DiscordSelectComponentOption>()
+            {
+                new DiscordSelectComponentOption(
+                "Label, no description",
+                "label_no_desc"),
+
+                new DiscordSelectComponentOption(
+                "Label, Description",
+                "label_no_desc",
+                "This is a description"),
+
+                new DiscordSelectComponentOption(
+                "Label, Description, Emoji",
+                "label_with_desc_emoji",
+                "This is a description!",
+                emoji: new DiscordComponentEmoji(854260064906117121)),
+
+                new DiscordSelectComponentOption(
+                "Label, Description, Emoji (Default)",
+                "label_with_desc_emoji_default",
+                "This is a description!",
+                isDefault: true,
+                new DiscordComponentEmoji(854260064906117121))
+            };
+
+                var dropdown = new DiscordSelectComponent("dropdown", null, options, false, 1, 2);
+
+                var builder = new DiscordMessageBuilder().WithContent("Look, it's a dropdown!").AddComponents(dropdown);
+
+                await builder.SendAsync(ctx.Channel);
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
 
             while (true)
-             {
-                 await ctx.Channel.SendMessageAsync("Pick an Option: ");
-                 var selectedGame = await interactivity.WaitForMessageAsync(message => message.Author == ctx.User);   
+            {
+                await ctx.Channel.SendMessageAsync("Pick an Option: ");
+                var selectedGame = await interactivity.WaitForMessageAsync(message => message.Author == ctx.User);
 
-                 if (!Int32.TryParse(selectedGame.Result.Content, out index))
-                 {
-                     Console.WriteLine(selectedGame.Result.Content);
-                     await ctx.Channel.SendMessageAsync("Wrong input.");
-                 }
-                 if (index > gameSelection.Count)
-                 {
-                     await ctx.Channel.SendMessageAsync("Invalid index.");
-                 }
-                 break;
-             }
+                if (!Int32.TryParse(selectedGame.Result.Content, out index))
+                {
+                    Console.WriteLine(selectedGame.Result.Content);
+                    await ctx.Channel.SendMessageAsync("Wrong input.");
+                }
+                if (index > gameSelection.Count)
+                {
+                    await ctx.Channel.SendMessageAsync("Invalid index.");
+                }
+                break;
+            }
 
             await page.GoToAsync(gameSelection[index - 1].Link);
         }
@@ -338,52 +404,57 @@ Total Votes: {totalvotes}";
 
             Console.WriteLine(games.Length);
 
+            int pageCount = 0;
+            int currentPage = 0;
+
             foreach (var game in games)
             {
                 var type = await game.EvaluateFunctionAsync<string>("game => game.getAttribute('data-shop-name')");
+                if (!string.IsNullOrWhiteSpace(type))
+                    pageCount++;
+            }
+
+
+            for (int i = 0; i < games.Length; i++)
+            {
+                var type = await games[i].EvaluateFunctionAsync<string>("game => game.getAttribute('data-shop-name')");
                 //excludes stuff like dlc, packs, etc.
                 if (!string.IsNullOrWhiteSpace(type))
                 {
+                    currentPage++;
                     Console.WriteLine("thingabob");
-                    var priceElement = await game.QuerySelectorAsync(".price-inner");
+                    var priceElement = await games[i].QuerySelectorAsync(".price-inner");
 
-                    priceElement ??= await game.QuerySelectorAsync(".price-text");
+                    priceElement ??= await games[i].QuerySelectorAsync(".price-text");
 
                     string price = await (await priceElement.GetPropertyAsync("textContent")).JsonValueAsync<string>();
 
-                    var linkElement = await game.QuerySelectorAsync(".full-link");
+                    var linkElement = await games[i].QuerySelectorAsync(".full-link");
 
                     string link = await (await linkElement.GetPropertyAsync("href")).JsonValueAsync<string>();
 
-                    DiscordEmbedBuilder message = new DiscordEmbedBuilder()
-                        .WithDescription($"Store: {type}\nPrice: {price}\n[Link]({link})");
+                    var gameTitleEl = await games[i].QuerySelectorAsync(".game-info-title");
 
-                    DSharpPlus.Interactivity.Page pageOfPrices = new (embed: message);
+                    string gameTitle = await (await gameTitleEl.GetPropertyAsync("textContent")).JsonValueAsync<string>();
+
+                    var embedFooter = new DiscordEmbedBuilder.EmbedFooter();
+                    embedFooter.Text = $"Page: {currentPage}/{pageCount}";
+
+                    DiscordEmbedBuilder message = new DiscordEmbedBuilder()
+                    {
+                        Title = $"{gameTitle}",
+                        Description = $"Store: {type}\nPrice: {price}\n[Link]({link})",
+                        Footer = embedFooter
+                    };
+
+                    DSharpPlus.Interactivity.Page pageOfPrices = new(embed: message);
 
                     pages.Add(pageOfPrices);
                 }
             }
+
             Console.WriteLine(pages.Count);
             await ctx.Channel.SendPaginatedMessageAsync(ctx.Member, pages);
-
-            /*
-            DiscordEmbedBuilder message = new()
-            {
-                Title = "Results",
-                Description = finalMessage.ToString(),
-                Timestamp = DateTime.Now,
-            };
-
-            await ctx.Channel.SendMessageAsync(embed: message);
-            */
-    
-        
-        
-        
-        
-        
-        
-        
         }
     }
 }
